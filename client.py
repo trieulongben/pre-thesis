@@ -39,7 +39,8 @@ class Client():
         if data:
             self.dataClass=data
 
-    def client_train(self,num_batch=1,lr=0.00001,epoch=10,optimizer=None):
+    def client_train(self,num_batch=1,lr=0.0003,epoch=10,optimizer=None):
+        print("Client {}, data: {} trainning".format(self.clientID,self.dataClass))
         
         model = self.curModel
         self.optimizer =optim.SGD(model.parameters(),lr=0.0001)
@@ -65,9 +66,10 @@ class Client():
             
         print('Client ID ', self.clientID, ', epoch ',
               epoch, ': ', epoc_loss / num_batch)
-    def client_evaluate(self):
-        self.model.eval()
-        testDataset=dataGenerator.plantdisease(isTest=True,rank=self.dataClass)
+    def client_evaluate(self,num_batch=2):
+        self.curModel.eval()
+        testDataset=self.dataset
+        testDataset.changeisTest(True)
 
         testDataLoader=torch.utils.data.DataLoader(testDataset,
                                          batch_size=int(num_batch),
@@ -75,7 +77,7 @@ class Client():
         test_loss,correct=0,0
         with torch.no_grad():
             for data,labels in testDataLoader:
-                outputs=self.model(data)
+                outputs=self.curModel(data)
                 test_loss+=F.nll_loss(outputs, labels).item()
                 predicted=outputs.argmax(dim=1,keepdim=True)
                 correct += predicted.eq(labels.view_as(predicted)).sum().item()
@@ -85,5 +87,6 @@ class Client():
             \n\t=> Test loss: {test_loss:.4f}\
             \n\t=> Test accuracy: {100. * test_accuracy:.2f}%\n"
         print(message, flush=True)
-a=Client()
-a.client_train()
+a=Client(dataClass=0)
+a.client_train(epoch=5)
+a.client_evaluate()
